@@ -1,5 +1,5 @@
 [Unit]
-Description=Register this receiver with the foodflick webserver
+Description=foodflick receiver
 Documentation=https://github.com/SimonVuong/ffreceiver
 After=network.target
 

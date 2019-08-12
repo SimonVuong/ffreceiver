@@ -18,9 +18,8 @@ setup system d to run rasberry pi server by first creating the .service file
 `sudo cp tools/ffreceiver.service /lib/systemd/system`
 
 then...
-
-`sudo systemctl start ffreceiver` to run it
 `sudo systemctl daemon-reload` so that systemd picks up the new file.
-`sudo systemtl enable ffreceiver` to enable starting app on boot
+`sudo systemctl start ffreceiver` to run it
+`sudo systemctl enable ffreceiver` to enable starting app on boot
 
 
