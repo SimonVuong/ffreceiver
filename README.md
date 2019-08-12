@@ -13,9 +13,9 @@ https://linuxize.com/post/how-to-install-node-js-on-raspberry-pi/.
 clone the repo at the home location. cd into repo and run `npm run build`. this will do npm install and package
 the files. also be sure to add a `.env` file at project root to specify any necessary env variables.
 
-setup system d to run rasberry pi server.
+setup system d to run rasberry pi server by first creating the .service file
 
-take the `./tools/ffreceiver.service` file and paste it into `/lib/systemd/system`
+`sudo cp tools/ffreceiver.service /lib/systemd/system`
 
 then...
 
