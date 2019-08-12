@@ -1,0 +1,13 @@
+[Unit]
+Description=Register this receiver with the foodflick webserver
+Documentation=https://github.com/SimonVuong/ffreceiver
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=node ~/ffreceiver/dist/index.js
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
