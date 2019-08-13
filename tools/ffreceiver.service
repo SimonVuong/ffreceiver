@@ -4,9 +4,10 @@ Documentation=https://github.com/SimonVuong/ffreceiver
 After=network.target
 
 [Service]
+Environment=NODE_ENV=production
 Type=simple
 User=pi
-ExecStart=NODE_ENV=production && node ~/ffreceiver/dist/index.js
+ExecStartnode ~/ffreceiver/dist/index.js
 Restart=always
 
 [Install]
