@@ -7,7 +7,7 @@ After=network.target
 Environment=NODE_ENV=production
 Type=simple
 User=pi
-ExecStart=node home/pi/ffreceiver/dist/index.js
+ExecStart=node /home/pi/ffreceiver/dist/index.js
 Restart=always
 
 [Install]
