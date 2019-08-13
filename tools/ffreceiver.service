@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-ExecStart=cross-env NODE_ENV=production node ~/ffreceiver/dist/index.js
+ExecStart=NODE_ENV=production && node ~/ffreceiver/dist/index.js
 Restart=always
 
 [Install]
