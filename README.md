@@ -10,8 +10,13 @@ make sure node is installed in the rasberry pi. follow first few steps here
 https://linuxize.com/post/how-to-install-node-js-on-raspberry-pi/.
 
 
-clone the repo at the home location. cd into repo and run `npm run build`. this will do npm install and package
-the files. also be sure to add a `.env` file at project root to specify any necessary env variables.
+clone the repo at the home location. 
+
+make sure to run `npm install -g cross-env`. make sure to update the config file to hold the correct receiverId
+
+
+cd into repo and run `npm run build`. this will do npm install and package
+the files.
 
 setup system d to run rasberry pi server by first creating the .service file
 

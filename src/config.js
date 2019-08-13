@@ -4,7 +4,7 @@ const env = process.env.NODE_ENV; // 'development' or 'production'
 
 const secrets = {
   receiver: {
-    rsaKey: process.env.rsaKey,
+    rsaKey: 'REPLACE ME',
   },
 };
 
@@ -20,10 +20,10 @@ const development = {
 
 const production = {
   receiver: {
-    id: process.env.recieverId,
+    id: 'REPLACE ME',
   },
   registration: {
-    host: 'foodflick.herokuapp',
+    host: 'foodflick.herokuapp.com',
     port: 80,
   },
 };
