@@ -61,11 +61,11 @@ const registerReceiver = () => {
   http.get(options, res => {
     res.setEncoding('utf8');
     res.on('data', data => {
-      const response = JSON.parse(data);
-      if (response.data) {
+      try {
+        const response = JSON.parse(data);
         print(response);
-      } else {
-        console.log(response.message);
+      } catch(e) {
+        console.log(e);
       }
     });
     res.on('end', () => console.log(`Registration aborted`) )
