@@ -64,8 +64,8 @@ const registerReceiver = () => {
       try {
         const response = JSON.parse(data);
         print(response);
-      } catch(e) {
-        console.log(e);
+      } catch(e) { // non json response
+        console.log(data);
       }
     });
     res.on('end', () => console.log(`Registration aborted`) )
