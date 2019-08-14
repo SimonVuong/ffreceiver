@@ -65,7 +65,11 @@ const registerReceiver = () => {
         const response = JSON.parse(data);
         print(response);
       } catch(e) { // non json response
-        console.log(data);
+	if (data === '1') {
+	  console.log('received heartbeat');
+	} else {
+	  console.log(`data: ${data}`);
+	}
       }
     });
     res.on('end', () => console.log(`Registration aborted`) )

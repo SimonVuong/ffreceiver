@@ -10,7 +10,7 @@ const secrets = {
 
 const development = {
   receiver: {
-    id: 'testReceiver1',
+    id: 'test',
   },
   registration: {
     host: '192.168.123.15',
@@ -20,7 +20,7 @@ const development = {
 
 const production = {
   receiver: {
-    id: 'REPLACE ME',
+    id: 'AQn6Nq-xr3',
   },
   registration: {
     host: 'foodflick.herokuapp.com',
