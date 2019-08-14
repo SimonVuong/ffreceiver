@@ -48,7 +48,6 @@
     "@babel/preset-env": "^7.5.5",
     "core-js": "^3.1.4",
     "cross-env": "^5.2.0",
-    "dotenv": "^8.0.0",
     "jsonwebtoken": "^8.1.0",
     "lodash": "^4.16.6",
     "node-thermal-printer": "^4.1.0",
