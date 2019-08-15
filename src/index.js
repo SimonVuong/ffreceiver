@@ -12,11 +12,12 @@ const getPrinterQ = ip => {
   return localPrinters[ip];
 }
 
-const printItem = (ip, type, port, customerName, { name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
+const printItem = (ip, type, port, customerName, tableNumber, { name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
   const thermalPrinter = new printer({
     interface: `tcp://${ip}:${port}`,
     type,
   });
+  thermalPrinter.println(`Table number: ${tableNumber}`);
   thermalPrinter.println(`Customer: ${customerName}`);
   thermalPrinter.newLine();
   thermalPrinter.println(`Name: ${name} (${quantity})`)
@@ -28,12 +29,10 @@ const printItem = (ip, type, port, customerName, { name, selectedPrice, selected
 
   if (selectedPrice.label) {
     thermalPrinter.println(selectedPrice.label);
-    thermalPrinter.newLine();
   }
 
   if (selectedOptions) {
     selectedOptions.forEach(({ name }) => thermalPrinter.println(name));
-    thermalPrinter.newLine();
   }
 
   if (specialRequests) thermalPrinter.println(`Special requests: ${specialRequests}`);
@@ -44,12 +43,13 @@ const printItem = (ip, type, port, customerName, { name, selectedPrice, selected
   return thermalPrinter.execute();
 }
 
-const printOrder = (ip, type, port, customerName, items, { itemTotal, tax, tip, total }) => {
+const printOrder = (ip, type, port, customerName, tableNumber, items, { itemTotal, tax, tip, total }) => {
   const thermalPrinter = new printer({
     interface: `tcp://${ip}:${port}`,
     type,
-  });   
-  thermalPrinter.print(`Customer: ${customerName}`);
+  });
+  thermalPrinter.println(`Table number: ${tableNumber}`);
+  thermalPrinter.println(`Customer: ${customerName}`);
 
   items.forEach(({ name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
     thermalPrinter.newLine()
@@ -76,7 +76,8 @@ const printOrder = (ip, type, port, customerName, items, { itemTotal, tax, tip, 
 }
 
 const print = printRequest => {
-  const customerName = printRequest.customer;
+  const customerName = printRequest.data.customerName;
+  const tableNumber = printRequest.data.tableNumber;
 
   // print items
   printRequest.data.items.forEach(({ printers, ...item }) => {
@@ -84,7 +85,7 @@ const print = printRequest => {
       const q = getPrinterQ(ip);
       q.add(async () => {
         try {
-          await printItem(ip, type, port, customerName, item);
+          await printItem(ip, type, port, customerName, tableNumber, item);
         } catch (e) {
           console.log(`failed to print to ${ip}, ${e}`);
         }
@@ -97,7 +98,7 @@ const print = printRequest => {
     const q = getPrinterQ(ip);
     q.add(async () => {
       try {
-        await printOrder(ip, type, port, customerName, printRequest.data.items, printRequest.data.costs);
+        await printOrder(ip, type, port, customerName, tableNumber, printRequest.data.items, printRequest.data.costs);
       } catch (e) {
         console.log(`failed to print receipt to ${ip}, ${e}`);
       }
