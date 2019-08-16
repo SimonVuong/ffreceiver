@@ -22,7 +22,7 @@ const printItem = (ip, type, port, customerName, { name, selectedPrice, selected
   thermalPrinter.println(`Name: ${name} (${quantity})`)
   thermalPrinter.newLine();
 
-  if (selectedPrice.label || selectedOptions) {
+  if (selectedPrice.label || selectedOptions.length > 0) {
     thermalPrinter.println(`Options:`);
   }
 
@@ -31,7 +31,7 @@ const printItem = (ip, type, port, customerName, { name, selectedPrice, selected
     thermalPrinter.newLine();
   }
 
-  if (selectedOptions) {
+  if (selectedOptions.length > 0) {
     selectedOptions.forEach(({ name }) => thermalPrinter.println(name));
     thermalPrinter.newLine();
   }
@@ -57,9 +57,7 @@ const printOrder = (ip, type, port, customerName, items, { itemTotal, tax, tip, 
     if (selectedPrice.label) {
       thermalPrinter.println(`- ${selectedPrice.label}`);
     }
-    if (selectedOptions) {
-      selectedOptions.forEach(({ name }) => thermalPrinter.println(`- ${name}`));
-    }
+    selectedOptions.forEach(({ name }) => thermalPrinter.println(`- ${name}`));
     if (specialRequests) thermalPrinter.println(`Special requests: ${specialRequests}`);
   });
 
