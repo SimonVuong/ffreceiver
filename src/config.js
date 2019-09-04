@@ -23,8 +23,8 @@ const production = {
     id: 'AQn6Nq-xr3',
   },
   registration: {
-    host: 'foodflick.herokuapp.com',
-    port: 80,
+    host: 'foodflick.co',
+    port: 443,
   },
 };
 

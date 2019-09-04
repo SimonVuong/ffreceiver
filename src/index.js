@@ -1,8 +1,8 @@
-import http from 'http';
+import https from 'https';
 import { printer } from 'node-thermal-printer';
 import { activeConfig } from './config';
 import PQueue from 'p-queue';
-
+import { readFileSync } from 'fs'
 const localPrinters = {};
 
 const getPrinterQ = ip => {
@@ -132,6 +132,7 @@ const options = {
   host: activeConfig.registration.host,
   defaultPort: activeConfig.registration.port,
   path: `/register-receiver?id=${activeConfig.receiver.id}`,
+  ca: readFileSync(__dirname + '/foodflick_co.ca-bundle'),
   headers: {
     connection: 'keep-alive',
     'content-type': 'application/json',
@@ -139,7 +140,7 @@ const options = {
 };
 
 const registerReceiver = () => {
-  http.get(options, res => {
+  https.get(options, res => {
     res.setEncoding('utf8');
     res.on('data', data => {
       if (data === '1') {
