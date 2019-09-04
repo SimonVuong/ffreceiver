@@ -12,6 +12,17 @@ const getPrinterQ = ip => {
   return localPrinters[ip];
 }
 
+const printPrinterName = (ip, type, port, name) => {
+  const thermalPrinter = new printer({
+    interface: `tcp://${ip}:${port}`,
+    type,
+  });
+  thermalPrinter.println(`${name} is ready to print for foodflick`);
+  thermalPrinter.cut();
+  thermalPrinter.beep();   
+  return thermalPrinter.execute();
+}
+
 const printItem = (ip, type, port, customerName, tableNumber, { name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
   const thermalPrinter = new printer({
     interface: `tcp://${ip}:${port}`,
@@ -104,6 +115,18 @@ const print = printRequest => {
   });
 };
 
+const testPrint = printRequest => {
+  const { ip, port, type, name } = printRequest.data.printer;
+  const q = getPrinterQ(ip);
+  q.add(async () => {
+    try {
+      await printPrinterName(ip, type, port, name);
+    } catch (e) {
+      console.log(`failed to print to ${ip}, ${e}`);
+    }
+  });
+};
+
 const options = {
   agent: false,
   host: activeConfig.registration.host,
@@ -125,7 +148,11 @@ const registerReceiver = () => {
       }
       try {
         const response = JSON.parse(data);
-        print(response);
+        if (response.isOrder) {
+          print(response);
+        } else {
+          testPrint(response)
+        }
       } catch(e) {
         console.log(`error ${e} with ${data}`);
       }
