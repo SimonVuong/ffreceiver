@@ -132,7 +132,6 @@ const options = {
   host: activeConfig.registration.host,
   defaultPort: activeConfig.registration.port,
   path: `/register-receiver?id=${activeConfig.receiver.id}`,
-  ca: readFileSync(__dirname + '/foodflick_co.ca-bundle'),
   headers: {
     connection: 'keep-alive',
     'content-type': 'application/json',

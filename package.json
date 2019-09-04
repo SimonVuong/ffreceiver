@@ -4,8 +4,6 @@
   "description": "",
   "scripts": {
     "build": "npm i && babel src -d dist --copy-files",
-    "prestart": "npm run build",
-    "start": "cross-env NODE_ENV=production node dist/index.js",
     "prod": "babel src -d dist --copy-files && cross-env NODE_ENV=production node dist/index.js",
     "dev": "cross-env NODE_ENV=development nodemon src/index.js --exec babel-node"
   },
