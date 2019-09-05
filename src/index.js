@@ -1,4 +1,5 @@
 import https from 'https';
+import http from 'http';
 import { printer } from 'node-thermal-printer';
 import { activeConfig } from './config';
 import PQueue from 'p-queue';
@@ -138,29 +139,37 @@ const options = {
   }
 };
 
+const handleGet = res => {
+  res.setEncoding('utf8');
+  res.on('data', data => {
+    if (data === '1') {
+      console.log('received heartbeat');
+      return;
+    }
+    try {
+      const response = JSON.parse(data);
+      if (response.isOrder) {
+        print(response);
+      } else {
+        testPrint(response)
+      }
+    } catch(e) {
+      console.log(`error ${e} with ${data}`);
+    }
+  });
+  res.on('end', () => console.log(`Registration aborted`) )
+};
+
 const registerReceiver = () => {
-  https.get(options, res => {
-    res.setEncoding('utf8');
-    res.on('data', data => {
-      if (data === '1') {
-        console.log('received heartbeat');
-        return;
-      }
-      try {
-        const response = JSON.parse(data);
-        if (response.isOrder) {
-          print(response);
-        } else {
-          testPrint(response)
-        }
-      } catch(e) {
-        console.log(`error ${e} with ${data}`);
-      }
-    });
-    res.on('end', () => console.log(`Registration aborted`) )
-  })
-  .on('close', () => console.log('closed'))
-  .on('error', e => console.log('error', e));
+  if (process.env.NODE_ENV === 'production') {
+    https.get(options, handleGet)
+      .on('close', () => console.log('closed'))
+      .on('error', e => console.log('error', e));
+  } else {
+    http.get(options, handleGet)
+      .on('close', () => console.log('closed'))
+      .on('error', e => console.log('error', e));
+  }
 
   console.log(`listening with config ${JSON.stringify(activeConfig)}`);
 }
