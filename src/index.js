@@ -3,7 +3,6 @@ import http from 'http';
 import { printer } from 'node-thermal-printer';
 import { activeConfig } from './config';
 import PQueue from 'p-queue';
-import { readFileSync } from 'fs'
 const localPrinters = {};
 
 const getPrinterQ = ip => {
@@ -85,11 +84,9 @@ const printOrder = (ip, type, port, customerName, tableNumber, items, { itemTota
   return thermalPrinter.execute();
 }
 
-const print = printRequest => {
+const printTickets = printRequest => {
   const customerName = printRequest.data.customerName;
   const tableNumber = printRequest.data.tableNumber;
-
-  // print items
   printRequest.data.items.forEach(({ printers, ...item }) => {
     printers.forEach(({ ip, type, port }) => {
       const q = getPrinterQ(ip);
@@ -102,8 +99,11 @@ const print = printRequest => {
       });
     });
   });
+};
 
-  // print order
+const printReceipts = printRequest => {
+  const customerName = printRequest.data.customerName;
+  const tableNumber = printRequest.data.tableNumber;
   printRequest.receiptPrinters.forEach(({ ip, type, port }) => {
     const q = getPrinterQ(ip);
     q.add(async () => {
@@ -148,10 +148,14 @@ const handleGet = res => {
     }
     try {
       const response = JSON.parse(data);
-      if (response.isOrder) {
-        print(response);
-      } else {
+      if (response.type === 'TICKETS') {
+        printTickets(response);
+      } if (response.type === 'RECEIPTS') {
+        printReceipts(response);
+      } else if (response.type === 'TEST') {
         testPrint(response)
+      } else {
+        throw new Error('unknown type');
       }
     } catch(e) {
       console.log(`error ${e} with ${data}`);
