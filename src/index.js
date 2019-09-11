@@ -104,7 +104,7 @@ const printTickets = printRequest => {
 const printReceipts = printRequest => {
   const customerName = printRequest.data.customerName;
   const tableNumber = printRequest.data.tableNumber;
-  printRequest.receiptPrinters.forEach(({ ip, type, port }) => {
+  printRequest.data.receiptPrinters.forEach(({ ip, type, port }) => {
     const q = getPrinterQ(ip);
     q.add(async () => {
       try {
@@ -135,7 +135,7 @@ const options = {
   path: `/register-receiver?id=${activeConfig.receiver.id}`,
   headers: {
     connection: 'keep-alive',
-    'content-type': 'application/json',
+    'Content-Type': 'application/json',
   }
 };
 
@@ -150,12 +150,12 @@ const handleGet = res => {
       const response = JSON.parse(data);
       if (response.type === 'TICKETS') {
         printTickets(response);
-      } if (response.type === 'RECEIPTS') {
+      } else if (response.type === 'RECEIPTS') {
         printReceipts(response);
       } else if (response.type === 'TEST') {
         testPrint(response)
       } else {
-        throw new Error('unknown type');
+        throw new Error(`Unknown type ${response.type}`);
       }
     } catch(e) {
       console.log(`error ${e} with ${data}`);
