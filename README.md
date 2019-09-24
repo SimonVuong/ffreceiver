@@ -1,14 +1,15 @@
 # ffreceiver
 
-when running make sure to create a .env file which contains the receiver's id
-
-
 to run as a service on rasberry pi boot...
-
 
 make sure node is installed in the rasberry pi. follow first few steps here
 https://linuxize.com/post/how-to-install-node-js-on-raspberry-pi/.
 
+make sure to allow ssh in case we need to debug on premise
+	- preferences -> raspberry pi config -> interfaces -> enable ssh
+
+make sure to allow make the pi wait for network on bootup
+	- preferences -> raspberry pi config -> system -> check off wait for network
 
 clone the repo at the home location. 
 
