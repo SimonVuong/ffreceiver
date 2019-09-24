@@ -95,7 +95,7 @@ const printTickets = printRequest => {
         try {
           await printItem(ip, type, port, customerName, tableNumber, item);
         } catch (e) {
-          console.log(`failed to print to ${ip}, ${e}`);
+          console.error(`failed to print ticket to ${ip}, ${e}`);
         }
       });
     });
@@ -111,7 +111,7 @@ const printReceipts = printRequest => {
       try {
         await printOrder(ip, type, port, customerName, tableNumber, printRequest.data.items, printRequest.data.costs);
       } catch (e) {
-        console.log(`failed to print receipt to ${ip}, ${e}`);
+        console.error(`failed to print receipt to ${ip}, ${e}`);
       }
     });
   });
@@ -124,7 +124,7 @@ const testPrint = printRequest => {
     try {
       await printPrinterName(ip, type, port, name);
     } catch (e) {
-      console.log(`failed to print to ${ip}, ${e}`);
+      console.error(`failed to print test to ${ip}, ${e}`);
     }
   });
 };
@@ -141,7 +141,7 @@ const handlePrintRequest = json => {
       throw new Error(`Unknown type ${json.type}`);
     }
   } catch(e) {
-    console.log(`error ${e} with ${json}`);
+    console.error(`error ${e} with ${json}`);
   }
 };
 
