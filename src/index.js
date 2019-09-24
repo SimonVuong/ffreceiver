@@ -1,8 +1,9 @@
-import https from 'https';
-import http from 'http';
 import { printer } from 'node-thermal-printer';
 import { activeConfig } from './config';
 import PQueue from 'p-queue';
+import io from 'socket.io-client';
+import parser from 'socket.io-json-parser';
+
 const localPrinters = {};
 
 const getPrinterQ = ip => {
@@ -128,54 +129,38 @@ const testPrint = printRequest => {
   });
 };
 
-const options = {
-  agent: false,
-  host: activeConfig.registration.host,
-  defaultPort: activeConfig.registration.port,
-  path: `/register-receiver?id=${activeConfig.receiver.id}`,
-  headers: {
-    connection: 'keep-alive',
-    'Content-Type': 'application/json',
+const handlePrintRequest = json => {
+  try {
+    if (json.type === 'TICKETS') {
+      printTickets(json);
+    } else if (json.type === 'RECEIPTS') {
+      printReceipts(json);
+    } else if (json.type === 'TEST') {
+      testPrint(json)
+    } else {
+      throw new Error(`Unknown type ${json.type}`);
+    }
+  } catch(e) {
+    console.log(`error ${e} with ${json}`);
   }
-};
-
-const handleGet = res => {
-  res.setEncoding('utf8');
-  res.on('data', data => {
-    if (data === '1') {
-      console.log('received heartbeat');
-      return;
-    }
-    try {
-      const response = JSON.parse(data);
-      if (response.type === 'TICKETS') {
-        printTickets(response);
-      } else if (response.type === 'RECEIPTS') {
-        printReceipts(response);
-      } else if (response.type === 'TEST') {
-        testPrint(response)
-      } else {
-        throw new Error(`Unknown type ${response.type}`);
-      }
-    } catch(e) {
-      console.log(`error ${e} with ${data}`);
-    }
-  });
-  res.on('end', () => console.log(`Registration aborted`) )
 };
 
 const registerReceiver = () => {
-  if (process.env.NODE_ENV === 'production') {
-    https.get(options, handleGet)
-      .on('close', () => console.log('closed'))
-      .on('error', e => console.log('error', e));
-  } else {
-    http.get(options, handleGet)
-      .on('close', () => console.log('closed'))
-      .on('error', e => console.log('error', e));
-  }
+  const socket = io(`${activeConfig.registration.host}?id=${activeConfig.receiver.id}`, {
+    parser,
+  });
 
-  console.log(`listening with config ${JSON.stringify(activeConfig)}`);
+  let socketId;
+  socket.on('connect', () => {
+    socketId = socket.id;
+    console.log('socket connected', socketId);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('socket disconnected', socketId);
+  })
+
+  socket.on('message', handlePrintRequest);
 }
 
 registerReceiver();

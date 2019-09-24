@@ -13,8 +13,7 @@ const development = {
     id: 'test',
   },
   registration: {
-    host: '192.168.123.15',
-    port: 8443,
+    host: 'http://10.1.10.15:8443',
   },
 };
 
@@ -23,8 +22,7 @@ const production = {
     id: 'AQn6Nq-xr3',
   },
   registration: {
-    host: 'foodflick.co',
-    port: 443,
+    host: 'https://foodflick.co',
   },
 };
 
