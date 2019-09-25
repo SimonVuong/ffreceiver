@@ -144,7 +144,7 @@ const handlePrintRequest = json => {
     console.error(`error ${e} with ${json}`);
   }
 };
-
+ 
 const registerReceiver = () => {
   const socket = io(`${activeConfig.registration.host}?id=${activeConfig.receiver.id}`, {
     parser,
@@ -154,6 +154,10 @@ const registerReceiver = () => {
   socket.on('connect', () => {
     socketId = socket.id;
     console.log('socket connected', socketId);
+  });
+
+  socket.on('reconnect', () => {
+    console.log('reconnecting');
   });
 
   socket.on('disconnect', () => {
