@@ -6,6 +6,7 @@
     "build": "npm i && babel src -d dist --copy-files",
     "prod": "babel src -d dist --copy-files && cross-env NODE_ENV=production node dist/index.js",
     "logs": "sudo journalctl -u ffreceiver.service",
+    "restart-service": "sudo systemctl restart ffreceiver",
     "start-service": "sudo systemctl start ffreceiver",
     "stop-service": "sudo systemctl stop ffreceiver",
     "dev": "cross-env NODE_ENV=development nodemon src/index.js --exec babel-node"

@@ -148,6 +148,8 @@ const handlePrintRequest = json => {
 const registerReceiver = () => {
   const socket = io(`${activeConfig.registration.host}?id=${activeConfig.receiver.id}`, {
     parser,
+    transports: ['websocket'],
+    forceNode: true,
   });
 
   let socketId;
@@ -155,13 +157,13 @@ const registerReceiver = () => {
     socketId = socket.id;
     console.log('socket connected', socketId);
   });
-
-  socket.on('reconnect', () => {
-    console.log('reconnecting');
+  
+  socket.on('reconnecting', attemptNumber => {
+    console.log('socket reconnecting', attemptNumber);
   });
 
-  socket.on('disconnect', () => {
-    console.log('socket disconnected', socketId);
+  socket.on('disconnect', reason => {
+    console.log('socket disconnected', socketId, reason);
   })
 
   socket.on('message', handlePrintRequest);
