@@ -11,6 +11,18 @@ make sure to allow ssh in case we need to debug on premise
 make sure to allow make the pi wait for network on bootup
 	- preferences -> raspberry pi config -> system -> check off wait for network
 
+set up a static ip to match the subnet of the printers. create the following file,
+substituting address and gateway as necessary.
+
+```
+// /etc/network/interfaces.d/eth0
+auth0 eth0
+iface eth0 inet static
+    address 10.0.0.10
+    gateway 192.168.1.1
+    netmask 255.255.255.0
+```
+
 clone the repo at the home location. 
 
 make sure to run `npm install -g cross-env`. make sure to update the config file to hold the correct receiverId
