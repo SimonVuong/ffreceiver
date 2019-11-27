@@ -13,7 +13,7 @@ const development = {
     id: 'test',
   },
   registration: {
-    host: 'http://10.1.10.15:8443',
+    host: 'http://192.168.0.12:8443',
   },
 };
 

@@ -5,12 +5,30 @@ import io from 'socket.io-client';
 import parser from 'socket.io-json-parser';
 
 const localPrinters = {};
+const restDetails = {};
 
 const getPrinterQ = ip => {
   if (!localPrinters[ip]) {
     localPrinters[ip] = new PQueue({ concurrency: 1 });
   }
   return localPrinters[ip];
+}
+
+const printGap = thermalPrinter => {
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
 }
 
 const printPrinterName = (ip, type, port, name) => {
@@ -24,48 +42,61 @@ const printPrinterName = (ip, type, port, name) => {
   return thermalPrinter.execute();
 }
 
-const printItem = (ip, type, port, customerName, tableNumber, { name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
+const printOrder = (ip, type, port, customerName, orderType, tableNumber, items) => {
   const thermalPrinter = new printer({
     interface: `tcp://${ip}:${port}`,
     type,
   });
-  thermalPrinter.println(`Table number: ${tableNumber}`);
+  printGap(thermalPrinter);
+  thermalPrinter.alignLeft();
+  thermalPrinter.setTextDoubleHeight();
+  thermalPrinter.setTextDoubleWidth();  
+  // thermalPrinter.drawLine();
+  thermalPrinter.println(orderType);
+  thermalPrinter.println(new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }))
+  thermalPrinter.println(`Table: ${tableNumber}`);
   thermalPrinter.println(`Customer: ${customerName}`);
-  thermalPrinter.newLine();
-  thermalPrinter.println(`Name: ${name} (${quantity})`)
-  thermalPrinter.newLine();
+  // thermalPrinter.drawLine();
+  items.forEach(({ name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
+    thermalPrinter.newLine();
+    thermalPrinter.println(`${quantity} ${name}`)
 
-  if (selectedPrice.label || selectedOptions.length > 0) {
-    thermalPrinter.println(`Options:`);
-  }
+    if (selectedPrice.label || selectedOptions.length > 0) {
+      thermalPrinter.println(`Options:`);
+    }
 
-  if (selectedPrice.label) {
-    thermalPrinter.println(selectedPrice.label);
-  }
+    if (selectedPrice.label) {
+      thermalPrinter.println(selectedPrice.label);
+    }
 
-  if (selectedOptions.length > 0) {
-    selectedOptions.forEach(({ name }) => thermalPrinter.println(name));
-  }
+    if (selectedOptions.length > 0) {
+      selectedOptions.forEach(({ name }) => thermalPrinter.println(name));
+    }
 
-  if (specialRequests) thermalPrinter.println(`Special requests: ${specialRequests}`);
-  
+    if (specialRequests) thermalPrinter.println(`Special requests: ${specialRequests}`);
+  })
+
+  thermalPrinter.beep(); 
   thermalPrinter.cut();
-  thermalPrinter.beep();   
-  
   return thermalPrinter.execute();
 }
 
-const printOrder = (ip, type, port, customerName, tableNumber, items, { itemTotal, tax, tip, total }) => {
+const printReceipt = (ip, type, port, customerName, tableNumber, items, { itemTotal, tax, tip, total }) => {
   const thermalPrinter = new printer({
     interface: `tcp://${ip}:${port}`,
     type,
   });
-  thermalPrinter.println(`Table number: ${tableNumber}`);
+  printGap(thermalPrinter);
+  thermalPrinter.alignLeft();
+  thermalPrinter.setTextDoubleHeight();
+  thermalPrinter.setTextDoubleWidth();  
+
+  thermalPrinter.println(`Table: ${tableNumber}`);
   thermalPrinter.println(`Customer: ${customerName}`);
 
   items.forEach(({ name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
-    thermalPrinter.newLine()
-    thermalPrinter.leftRight(`${name} (${quantity})`, quantity*selectedPrice.value);
+    thermalPrinter.newLine();
+    thermalPrinter.leftRight(`${quantity} ${name}`, quantity*selectedPrice.value);
     if (selectedPrice.label) {
       thermalPrinter.println(`- ${selectedPrice.label}`);
     }
@@ -75,31 +106,58 @@ const printOrder = (ip, type, port, customerName, tableNumber, items, { itemTota
 
   thermalPrinter.leftRight('Item total', itemTotal);
   thermalPrinter.leftRight('Tax', tax);
-  thermalPrinter.underline(true);
+  thermalPrinter.underlineThick(true);
   thermalPrinter.leftRight('Tip', tip);
-  thermalPrinter.underline(false);
+  thermalPrinter.underlineThick(false);
   thermalPrinter.leftRight('Total', total);
-
+  thermalPrinter.newLine();
+  thermalPrinter.newLine();
+  thermalPrinter.setTextNormal();
+  thermalPrinter.alignCenter(); 
+  thermalPrinter.println(restDetails.name);
+  thermalPrinter.println(restDetails.address1);
+  thermalPrinter.println(`${restDetails.city}, ${restDetails.state} ${restDetails.zip}`);
+  thermalPrinter.println(restDetails.phone);
   thermalPrinter.cut();
-  thermalPrinter.beep();   
+  thermalPrinter.beep();
   return thermalPrinter.execute();
 }
 
 const printTickets = printRequest => {
   const customerName = printRequest.data.customerName;
   const tableNumber = printRequest.data.tableNumber;
+  const orderType = printRequest.data.orderType;
+  const targetPrinters = {};
   printRequest.data.items.forEach(({ printers, ...item }) => {
     printers.forEach(({ ip, type, port }) => {
-      const q = getPrinterQ(ip);
-      q.add(async () => {
-        try {
-          await printItem(ip, type, port, customerName, tableNumber, item);
-        } catch (e) {
-          console.error(`failed to print ticket to ${ip}, ${e}`);
-        }
-      });
+      if (!targetPrinters[ip]) {
+        targetPrinters[ip] = {
+          type,
+          port,
+          items: []
+        };
+      }
+      targetPrinters[ip].items.push(item);
     });
   });
+  Object.entries(targetPrinters).forEach(([ip, ticket]) => {
+    const q = getPrinterQ(ip);
+    q.add(async () => {
+      try {
+        await printOrder(
+          ip,
+          ticket.type,
+          ticket.port,
+          customerName,
+          orderType,
+          tableNumber,
+          ticket.items
+        );
+      } catch (e) {
+        console.error(`failed to print ticket to ${ip}, ${e}`);
+      }
+    });
+  })
 };
 
 const printReceipts = printRequest => {
@@ -109,12 +167,22 @@ const printReceipts = printRequest => {
     const q = getPrinterQ(ip);
     q.add(async () => {
       try {
-        await printOrder(ip, type, port, customerName, tableNumber, printRequest.data.items, printRequest.data.costs);
+        await printReceipt(ip, type, port, customerName, tableNumber, printRequest.data.items, printRequest.data.costs);
       } catch (e) {
         console.error(`failed to print receipt to ${ip}, ${e}`);
       }
     });
   });
+};
+
+const saveDetails = details => {
+  const { name, address, phone } = details.data;
+  restDetails.name = name;
+  restDetails.address1 = address.address1;
+  restDetails.city = address.city;
+  restDetails.state = address.state;
+  restDetails.zip = address.zip;
+  restDetails.phone = phone;
 };
 
 const testPrint = printRequest => {
@@ -129,12 +197,14 @@ const testPrint = printRequest => {
   });
 };
 
-const handlePrintRequest = json => {
+const handleRequest = json => {
   try {
     if (json.type === 'TICKETS') {
       printTickets(json);
     } else if (json.type === 'RECEIPTS') {
       printReceipts(json);
+    } else if (json.type === 'REST_DETAILS') {
+      saveDetails(json);
     } else if (json.type === 'TEST') {
       testPrint(json)
     } else {
@@ -166,7 +236,7 @@ const registerReceiver = () => {
     console.log('socket disconnected', socketId, reason);
   })
 
-  socket.on('message', handlePrintRequest);
+  socket.on('message', handleRequest);
 }
 
 registerReceiver();
