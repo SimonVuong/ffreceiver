@@ -3,6 +3,7 @@ import { activeConfig } from './config';
 import PQueue from 'p-queue';
 import io from 'socket.io-client';
 import parser from 'socket.io-json-parser';
+import iconvLite from 'iconv-lite';
 
 const localPrinters = {};
 const restDetails = {};
@@ -14,10 +15,64 @@ const getPrinterQ = ip => {
   return localPrinters[ip];
 }
 
+const isAlphaNumeric = str => {
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (!(code > 47 && code < 58) && // numeric (0-9)
+        !(code > 64 && code < 91) && // upper alpha (A-Z)
+        !(code > 96 && code < 123)) { // lower alpha (a-z)
+      return false;
+    }
+  }
+  return true;
+};
+
+const printChinese = (thermalPrinter, text) => {
+  thermalPrinter.append(iconvLite.encode(text, 'Big5'));
+}
+
+const printlnChinese = (thermalPrinter, text) => {
+  printChinese(thermalPrinter, text);
+  thermalPrinter.append('\n');
+}
+
+const printDoubleSizedChineseNamePrice = (printer, name, price) => {
+  printChinese(printer, name);
+  // chinese characters are ~ 2x the width of alphanumeric
+  let nameLength = isAlphaNumeric(name) ? name.toString().length : name.toString().length * 2
+  const width = printer.getWidth() / 2 - nameLength - price.toString().length;
+  for (let i = 0; i < width; i++) {
+    printer.append(Buffer.from(' '));
+  }
+  printer.print(price);
+  printer.newLine();
+}
+
+const printDoubleSizedLeftRight = (printer, left, right) => {
+  printChinese(printer, left);
+  const width = printer.getWidth() / 2 - left.toString().length - right.toString().length;
+  for (let i = 0; i < width; i++) {
+    printer.append(Buffer.from(' '));
+  }
+  printChinese(printer, right);
+  printer.newLine();
+}
+
+const printDoubleSizedLine = thermalPrinter => {
+  for (let i = 0; i < thermalPrinter.getWidth() / 2; i++) {
+    thermalPrinter.print('-');
+  }
+  thermalPrinter.newLine();
+}
+
+const printHeader = (thermalPrinter, orderType, table, customerName) => {
+  thermalPrinter.println(orderType);
+  thermalPrinter.println(new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }))
+  thermalPrinter.println(`Table: ${table}`);
+  thermalPrinter.println(`Customer: ${customerName}`);
+}
+
 const printGap = thermalPrinter => {
-  thermalPrinter.newLine();
-  thermalPrinter.newLine();
-  thermalPrinter.newLine();
   thermalPrinter.newLine();
   thermalPrinter.newLine();
   thermalPrinter.newLine();
@@ -49,31 +104,34 @@ const printOrder = (ip, type, port, customerName, orderType, tableNumber, items)
   });
   printGap(thermalPrinter);
   thermalPrinter.alignLeft();
-  thermalPrinter.setTextDoubleHeight();
-  thermalPrinter.setTextDoubleWidth();  
-  // thermalPrinter.drawLine();
-  thermalPrinter.println(orderType);
-  thermalPrinter.println(new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }))
-  thermalPrinter.println(`Table: ${tableNumber}`);
-  thermalPrinter.println(`Customer: ${customerName}`);
-  // thermalPrinter.drawLine();
+  thermalPrinter.setTextNormal();
+  printHeader(thermalPrinter, orderType, tableNumber, customerName);
+  thermalPrinter.setTextSize(1,1);
+  printDoubleSizedLine(thermalPrinter);
   items.forEach(({ name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
-    thermalPrinter.newLine();
-    thermalPrinter.println(`${quantity} ${name}`)
-
+    printlnChinese(thermalPrinter, `${quantity} ${name}`);
     if (selectedPrice.label || selectedOptions.length > 0) {
+      thermalPrinter.setTextNormal();
       thermalPrinter.println(`Options:`);
+      thermalPrinter.setTextSize(1,1);
     }
 
     if (selectedPrice.label) {
-      thermalPrinter.println(selectedPrice.label);
+      thermalPrinter.println(`- ${selectedPrice.label}`);
     }
 
     if (selectedOptions.length > 0) {
-      selectedOptions.forEach(({ name }) => thermalPrinter.println(name));
+      selectedOptions.forEach(({ name }) => thermalPrinter.println(`- ${name}`));
     }
 
-    if (specialRequests) thermalPrinter.println(`Special requests: ${specialRequests}`);
+    if (specialRequests) {
+      thermalPrinter.setTextNormal();
+      thermalPrinter.print(`Special requests:`);
+      thermalPrinter.setTextDoubleHeight();
+      thermalPrinter.setTextDoubleWidth();  
+      thermalPrinter.print(specialRequests);
+    }
+    thermalPrinter.newLine();
   })
 
   thermalPrinter.beep(); 
@@ -81,35 +139,38 @@ const printOrder = (ip, type, port, customerName, orderType, tableNumber, items)
   return thermalPrinter.execute();
 }
 
-const printReceipt = (ip, type, port, customerName, tableNumber, items, { itemTotal, tax, tip, total }) => {
+const printReceipt = (ip, type, port, customerName, orderType, tableNumber, items, { itemTotal, tax, tip, total }) => {
   const thermalPrinter = new printer({
     interface: `tcp://${ip}:${port}`,
     type,
   });
   printGap(thermalPrinter);
   thermalPrinter.alignLeft();
-  thermalPrinter.setTextDoubleHeight();
-  thermalPrinter.setTextDoubleWidth();  
-
-  thermalPrinter.println(`Table: ${tableNumber}`);
-  thermalPrinter.println(`Customer: ${customerName}`);
-
+  thermalPrinter.setTextNormal();
+  printHeader(thermalPrinter, orderType, tableNumber, customerName);
+  thermalPrinter.setTextSize(1,1);
+  printDoubleSizedLine(thermalPrinter);
   items.forEach(({ name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
-    thermalPrinter.newLine();
-    thermalPrinter.leftRight(`${quantity} ${name}`, quantity*selectedPrice.value);
+    printDoubleSizedChineseNamePrice(thermalPrinter, `${quantity} ${name}`, quantity*selectedPrice.value);
     if (selectedPrice.label) {
       thermalPrinter.println(`- ${selectedPrice.label}`);
     }
     selectedOptions.forEach(({ name }) => thermalPrinter.println(`- ${name}`));
-    if (specialRequests) thermalPrinter.println(`Special requests: ${specialRequests}`);
+    if (specialRequests) {
+      thermalPrinter.newLine();
+      thermalPrinter.setTextNormal();
+      thermalPrinter.print(`Special requests:`);
+      thermalPrinter.setTextDoubleHeight();
+      thermalPrinter.setTextDoubleWidth();  
+      thermalPrinter.print(specialRequests);
+    }
+    thermalPrinter.newLine();
   });
-
-  thermalPrinter.leftRight('Item total', itemTotal);
-  thermalPrinter.leftRight('Tax', tax);
-  thermalPrinter.underlineThick(true);
-  thermalPrinter.leftRight('Tip', tip);
-  thermalPrinter.underlineThick(false);
-  thermalPrinter.leftRight('Total', total);
+  printDoubleSizedLeftRight(thermalPrinter, 'Item total', itemTotal);
+  printDoubleSizedLeftRight(thermalPrinter, 'Tax', tax);
+  printDoubleSizedLeftRight(thermalPrinter, 'Tip', tip);
+  printDoubleSizedLine(thermalPrinter);
+  printDoubleSizedLeftRight(thermalPrinter, 'Total', total);
   thermalPrinter.newLine();
   thermalPrinter.newLine();
   thermalPrinter.setTextNormal();
@@ -154,7 +215,7 @@ const printTickets = printRequest => {
           ticket.items
         );
       } catch (e) {
-        console.error(`failed to print ticket to ${ip}, ${e}`);
+        console.error(`failed to print ticket to ${ip}, ${e} ${e.stack}`);
       }
     });
   })
@@ -167,9 +228,9 @@ const printReceipts = printRequest => {
     const q = getPrinterQ(ip);
     q.add(async () => {
       try {
-        await printReceipt(ip, type, port, customerName, tableNumber, printRequest.data.items, printRequest.data.costs);
+        await printReceipt(ip, type, port, customerName, orderType, tableNumber, printRequest.data.items, printRequest.data.costs);
       } catch (e) {
-        console.error(`failed to print receipt to ${ip}, ${e}`);
+        console.error(`failed to print receipt to ${ip}, ${e} ${e.stack}`);
       }
     });
   });
