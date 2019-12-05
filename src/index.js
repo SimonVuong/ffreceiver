@@ -164,9 +164,9 @@ const printReceipt = (ip, type, port, customerName, orderType, tableNumber, item
       thermalPrinter.setTextDoubleWidth();  
       thermalPrinter.print(specialRequests);
     }
-    thermalPrinter.newLine();
   });
-  printDoubleSizedLeftRight(thermalPrinter, 'Item total', itemTotal);
+  thermalPrinter.newLine();
+  printDoubleSizedLeftRight(thermalPrinter, 'Item total', itemTotal); 
   printDoubleSizedLeftRight(thermalPrinter, 'Tax', tax);
   printDoubleSizedLeftRight(thermalPrinter, 'Tip', tip);
   printDoubleSizedLine(thermalPrinter);
@@ -190,7 +190,7 @@ const printTickets = printRequest => {
   const orderType = printRequest.data.orderType;
   const targetPrinters = {};
   printRequest.data.items.forEach(({ printers, ...item }) => {
-    printers.forEach(({ ip, type, port }) => {
+    printers.forEach(({ ip, type, port, itemName }) => {
       if (!targetPrinters[ip]) {
         targetPrinters[ip] = {
           type,
@@ -198,6 +198,7 @@ const printTickets = printRequest => {
           items: []
         };
       }
+      item.name = itemName;
       targetPrinters[ip].items.push(item);
     });
   });
@@ -223,6 +224,7 @@ const printTickets = printRequest => {
 
 const printReceipts = printRequest => {
   const customerName = printRequest.data.customerName;
+  const orderType = printRequest.data.orderType;
   const tableNumber = printRequest.data.tableNumber;
   printRequest.data.receiptPrinters.forEach(({ ip, type, port }) => {
     const q = getPrinterQ(ip);
