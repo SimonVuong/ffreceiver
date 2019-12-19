@@ -65,10 +65,11 @@ const printDoubleSizedLine = thermalPrinter => {
   thermalPrinter.newLine();
 }
 
-const printHeader = (thermalPrinter, orderType, table, customerName) => {
+const printHeader = (thermalPrinter, orderType, tableNumber, serverName, customerName) => {
   thermalPrinter.println(orderType);
   thermalPrinter.println(new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }))
-  thermalPrinter.println(`Table: ${table}`);
+  if (tableNumber) thermalPrinter.println(`Table: ${tableNumber}`);
+  if (serverName) thermalPrinter.println(`Server: ${serverName}`)
   thermalPrinter.println(`Customer: ${customerName}`);
 }
 
@@ -97,7 +98,7 @@ const printPrinterName = (ip, type, port, name) => {
   return thermalPrinter.execute();
 }
 
-const printOrder = (ip, type, port, customerName, orderType, tableNumber, items) => {
+const printOrder = (ip, type, port, customerName, serverName, orderType, tableNumber, items) => {
   const thermalPrinter = new printer({
     interface: `tcp://${ip}:${port}`,
     type,
@@ -105,7 +106,7 @@ const printOrder = (ip, type, port, customerName, orderType, tableNumber, items)
   printGap(thermalPrinter);
   thermalPrinter.alignLeft();
   thermalPrinter.setTextNormal();
-  printHeader(thermalPrinter, orderType, tableNumber, customerName);
+  printHeader(thermalPrinter, orderType, tableNumber, serverName, customerName);
   thermalPrinter.setTextSize(1,1);
   printDoubleSizedLine(thermalPrinter);
   items.forEach(({ name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
@@ -139,7 +140,7 @@ const printOrder = (ip, type, port, customerName, orderType, tableNumber, items)
   return thermalPrinter.execute();
 }
 
-const printReceipt = (ip, type, port, customerName, orderType, tableNumber, items, { itemTotal, tax, tip, total }) => {
+const printReceipt = (ip, type, port, customerName, serverName, orderType, tableNumber, items, { itemTotal, refund, tax, tip, total }) => {
   const thermalPrinter = new printer({
     interface: `tcp://${ip}:${port}`,
     type,
@@ -147,7 +148,7 @@ const printReceipt = (ip, type, port, customerName, orderType, tableNumber, item
   printGap(thermalPrinter);
   thermalPrinter.alignLeft();
   thermalPrinter.setTextNormal();
-  printHeader(thermalPrinter, orderType, tableNumber, customerName);
+  printHeader(thermalPrinter, orderType, tableNumber, serverName, customerName);
   thermalPrinter.setTextSize(1,1);
   printDoubleSizedLine(thermalPrinter);
   items.forEach(({ name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
@@ -169,6 +170,7 @@ const printReceipt = (ip, type, port, customerName, orderType, tableNumber, item
   printDoubleSizedLeftRight(thermalPrinter, 'Item total', itemTotal); 
   printDoubleSizedLeftRight(thermalPrinter, 'Tax', tax);
   printDoubleSizedLeftRight(thermalPrinter, 'Tip', tip);
+  if (refund) printDoubleSizedLeftRight(thermalPrinter, 'Refund', `-${refund}`)
   printDoubleSizedLine(thermalPrinter);
   printDoubleSizedLeftRight(thermalPrinter, 'Total', total);
   thermalPrinter.newLine();
@@ -188,6 +190,7 @@ const printTickets = printRequest => {
   const customerName = printRequest.data.customerName;
   const tableNumber = printRequest.data.tableNumber;
   const orderType = printRequest.data.orderType;
+  const serverName = printRequest.data.serverName;
   const targetPrinters = {};
   printRequest.data.items.forEach(({ printers, ...item }) => {
     printers.forEach(({ ip, type, port, itemName }) => {
@@ -211,6 +214,7 @@ const printTickets = printRequest => {
           ticket.type,
           ticket.port,
           customerName,
+          serverName,
           orderType,
           tableNumber,
           ticket.items
@@ -226,11 +230,12 @@ const printReceipts = printRequest => {
   const customerName = printRequest.data.customerName;
   const orderType = printRequest.data.orderType;
   const tableNumber = printRequest.data.tableNumber;
+  const serverName = printRequest.data.serverName;
   printRequest.data.receiptPrinters.forEach(({ ip, type, port }) => {
     const q = getPrinterQ(ip);
     q.add(async () => {
       try {
-        await printReceipt(ip, type, port, customerName, orderType, tableNumber, printRequest.data.items, printRequest.data.costs);
+        await printReceipt(ip, type, port, customerName, serverName, orderType, tableNumber, printRequest.data.items, printRequest.data.costs);
       } catch (e) {
         console.error(`failed to print receipt to ${ip}, ${e} ${e.stack}`);
       }
