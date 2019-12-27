@@ -18,7 +18,8 @@ const getPrinterQ = ip => {
 const isAlphaNumeric = str => {
   for (let i = 0; i < str.length; i++) {
     const code = str.charCodeAt(i);
-    if (!(code > 47 && code < 58) && // numeric (0-9)
+    if (code !== 32 && // space
+        !(code > 47 && code < 58) && // numeric (0-9)
         !(code > 64 && code < 91) && // upper alpha (A-Z)
         !(code > 96 && code < 123)) { // lower alpha (a-z)
       return false;
@@ -41,6 +42,18 @@ const printDoubleSizedChineseNamePrice = (printer, name, price) => {
   // chinese characters are ~ 2x the width of alphanumeric
   let nameLength = isAlphaNumeric(name) ? name.toString().length : name.toString().length * 2
   const width = printer.getWidth() / 2 - nameLength - price.toString().length;
+  for (let i = 0; i < width; i++) {
+    printer.append(Buffer.from(' '));
+  }
+  printer.print(price);
+  printer.newLine();
+}
+
+const printNormalSizedChineseNamePrice = (printer, name, price) => {
+  printChinese(printer, name);
+  // chinese characters are ~ 2x the width of alphanumeric
+  const nameLength = isAlphaNumeric(name) ? name.toString().length : name.toString().length * 2
+  const width = printer.getWidth() - nameLength - price.toString().length;
   for (let i = 0; i < width; i++) {
     printer.append(Buffer.from(' '));
   }
@@ -113,7 +126,6 @@ const printOrder = (ip, type, port, customerName, serverName, orderType, tableNu
     printlnChinese(thermalPrinter, `${quantity} ${name}`);
     if (selectedPrice.label || selectedOptions.length > 0) {
       thermalPrinter.setTextNormal();
-      thermalPrinter.println(`Options:`);
       thermalPrinter.setTextSize(1,1);
     }
 
@@ -145,14 +157,16 @@ const printReceipt = (ip, type, port, customerName, serverName, orderType, table
     interface: `tcp://${ip}:${port}`,
     type,
   });
-  printGap(thermalPrinter);
   thermalPrinter.alignLeft();
   thermalPrinter.setTextNormal();
   printHeader(thermalPrinter, orderType, tableNumber, serverName, customerName);
-  thermalPrinter.setTextSize(1,1);
-  printDoubleSizedLine(thermalPrinter);
+  thermalPrinter.drawLine();
   items.forEach(({ name, selectedPrice, selectedOptions, quantity, specialRequests }) => {
-    printDoubleSizedChineseNamePrice(thermalPrinter, `${quantity} ${name}`, quantity*selectedPrice.value);
+    printNormalSizedChineseNamePrice(
+      thermalPrinter,
+      `${quantity} ${name}`,
+      (quantity*selectedPrice.value).toFixed(2)
+    );
     if (selectedPrice.label) {
       thermalPrinter.println(`- ${selectedPrice.label}`);
     }
@@ -161,21 +175,18 @@ const printReceipt = (ip, type, port, customerName, serverName, orderType, table
       thermalPrinter.newLine();
       thermalPrinter.setTextNormal();
       thermalPrinter.print(`Special requests:`);
-      thermalPrinter.setTextDoubleHeight();
-      thermalPrinter.setTextDoubleWidth();  
       thermalPrinter.print(specialRequests);
     }
   });
   thermalPrinter.newLine();
-  printDoubleSizedLeftRight(thermalPrinter, 'Item total', itemTotal); 
-  printDoubleSizedLeftRight(thermalPrinter, 'Tax', tax);
-  printDoubleSizedLeftRight(thermalPrinter, 'Tip', tip);
-  if (refund) printDoubleSizedLeftRight(thermalPrinter, 'Refund', `-${refund}`)
-  printDoubleSizedLine(thermalPrinter);
-  printDoubleSizedLeftRight(thermalPrinter, 'Total', total);
+  thermalPrinter.leftRight('Item total', itemTotal.toFixed(2));
+  thermalPrinter.leftRight('Tax', tax.toFixed(2));
+  thermalPrinter.leftRight('Tip', tip.toFixed(2));
+  if (refund) thermalPrinter.leftRight('Refund', `-${refund.toFixed(2)}`)
+  thermalPrinter.drawLine();
+  thermalPrinter.leftRight('Total', total.toFixed(2));
   thermalPrinter.newLine();
   thermalPrinter.newLine();
-  thermalPrinter.setTextNormal();
   thermalPrinter.alignCenter(); 
   thermalPrinter.println(restDetails.name);
   thermalPrinter.println(restDetails.address1);
